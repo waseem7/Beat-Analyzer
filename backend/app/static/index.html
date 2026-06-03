@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Latin Beat Analyzer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">♪</span>
+        <div>
+          <p class="eyebrow">Self-hosted Latin DJ workstation</p>
+          <h1>Latin Beat Analyzer</h1>
+        </div>
+      </div>
+      <nav class="top-actions">
+        <button id="scanImportButton" class="button secondary">Scan /import</button>
+        <a class="button secondary" href="/api/exports/tracks.csv">Export library CSV</a>
+        <button id="settingsButton" class="button">Settings</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero panel">
+        <div>
+          <h2>Analyze, review, and export Latin beatgrids</h2>
+          <p>Upload audio or scan mounted NAS music under <code>/import</code>. The app estimates BPM, beat timestamps, salsa 1/5 candidates, and confidence, then lets you correct the musical grid quickly.</p>
+        </div>
+        <div class="upload-box">
+          <input id="fileInput" type="file" multiple accept="audio/*" />
+          <button id="uploadButton">Upload and analyze</button>
+          <div id="uploadStatus" class="status"></div>
+        </div>
+      </section>
+
+      <section class="toolbar panel">
+        <label>
+          Search
+          <input id="searchInput" type="search" placeholder="Filter tracks…" />
+        </label>
+        <label>
+          Sort
+          <select id="sortSelect">
+            <option value="confidence">Lowest confidence</option>
+            <option value="newest">Newest first</option>
+            <option value="name">Name</option>
+            <option value="bpm">BPM</option>
+          </select>
+        </label>
+        <label class="checkbox">
+          <input id="showReviewed" type="checkbox" />
+          Show reviewed
+        </label>
+        <button id="refreshButton" class="button secondary">Refresh</button>
+      </section>
+
+      <section class="layout">
+        <aside class="panel sidebar">
+          <div class="section-title">
+            <h2>Review queue</h2>
+            <span id="trackCount" class="pill">0 tracks</span>
+          </div>
+          <div id="trackList" class="track-list"></div>
+        </aside>
+
+        <section class="panel detail">
+          <div id="emptyState" class="empty">Select a track to inspect its waveform and beatgrid.</div>
+          <div id="trackDetail" hidden>
+            <div class="section-title wrap">
+              <div>
+                <p class="eyebrow">Now reviewing</p>
+                <h2 id="detailTitle"></h2>
+                <p id="detailSubtitle" class="muted"></p>
+              </div>
+              <div class="actions">
+                <a id="jsonExport" class="button secondary" href="#">JSON</a>
+                <a id="beatExport" class="button secondary" href="#">Beat CSV</a>
+                <button id="tagButton" class="button secondary">Write BPM tag</button>
+              </div>
+            </div>
+
+            <audio id="audio" controls preload="metadata"></audio>
+            <canvas id="waveform" width="1200" height="260"></canvas>
+            <div class="legend">
+              <span><b class="beat"></b> beat</span>
+              <span><b class="one"></b> salsa 1</span>
+              <span><b class="five"></b> salsa 5</span>
+            </div>
+
+            <div id="metrics" class="metrics"></div>
+            <div id="warnings" class="warnings"></div>
+
+            <div class="corrections">
+              <div class="section-title">
+                <h3>Manual correction tools</h3>
+                <span class="muted">Actions use the current audio playhead when relevant.</span>
+              </div>
+              <div class="button-grid">
+                <button data-action="set_one">Set playhead as 1</button>
+                <button data-action="set_five">Set playhead as 5</button>
+                <button data-action="swap_one_five">Swap 1 / 5</button>
+                <button data-action="shift_minus_beat">Shift -1 beat</button>
+                <button data-action="shift_plus_beat">Shift +1 beat</button>
+                <button data-action="shift_minus_phrase">Phrase -4 beats</button>
+                <button data-action="shift_plus_phrase">Phrase +4 beats</button>
+                <button data-action="half_bpm">Half BPM</button>
+                <button data-action="double_bpm">Double BPM</button>
+                <button data-action="mark_reviewed">Mark reviewed</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <aside id="settingsPanel" class="settings-panel" hidden>
+      <div class="settings-card panel">
+        <div class="section-title">
+          <h2>Settings</h2>
+          <button id="closeSettings" class="button secondary">Close</button>
+        </div>
+        <label>
+          Theme
+          <select id="themeSelect">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="system">System</option>
+          </select>
+        </label>
+        <label>
+          Accent color
+          <input id="accentInput" type="color" value="#ff4d6d" />
+        </label>
+        <label class="checkbox">
+          <input id="autoRefresh" type="checkbox" />
+          Auto-refresh review queue
+        </label>
+        <label class="checkbox">
+          <input id="compactMode" type="checkbox" />
+          Compact queue cards
+        </label>
+        <div class="settings-meta">
+          <h3>Server</h3>
+          <pre id="serverSettings">Loading…</pre>
+          <p class="warning-text">No built-in authentication. Use on a trusted LAN or protect remote access with Cloudflare Access, a VPN, or another auth gateway.</p>
+        </div>
+      </div>
+    </aside>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

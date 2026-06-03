@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+data/music/*
+data/analysis/*
+data/exports/*
+!data/music/.gitkeep
+!data/analysis/.gitkeep
+!data/exports/.gitkeep
