@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from functools import lru_cache
 from pathlib import Path
 from uuid import uuid4
 
@@ -14,8 +15,16 @@ from .services.corrections import apply_correction
 from .services.exports import beat_detail_csv, master_json, persist_export, track_summary_csv, write_mp3_tags
 from .storage import MUSIC_DIR, load_track, list_tracks, music_path, save_track, set_failed
 
-app = FastAPI(title="Latin Beat Analyzer", version="0.1.0")
 STATIC_DIR = Path(__file__).parent / "static"
+VERSION_FILE = Path(__file__).resolve().parents[2] / "VERSION"
+
+
+@lru_cache(maxsize=1)
+def app_version() -> str:
+    return VERSION_FILE.read_text(encoding="utf-8").strip()
+
+
+app = FastAPI(title="Latin Beat Analyzer", version=app_version())
 
 
 def _summary(track: Track) -> TrackSummary:
@@ -48,7 +57,7 @@ def _run_analysis(track_id: str) -> None:
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "version": app_version(), "release": "first-alpha"}
 
 
 @app.post("/api/tracks", response_model=TrackSummary)
