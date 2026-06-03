@@ -1,0 +1,7 @@
+.git
+__pycache__
+.pytest_cache
+*.pyc
+data/music/*
+data/analysis/*
+data/exports/*

@@ -1,0 +1,9 @@
+services:
+  beat-analyzer:
+    build: .
+    container_name: latin-beat-analyzer
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

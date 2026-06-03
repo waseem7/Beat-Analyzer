@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Latin Beat Analyzer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">Self-hosted Latin DJ workstation</p>
+        <h1>Latin Beat Analyzer</h1>
+        <p>Batch upload audio, estimate BPM/beatgrids, review salsa 1/5 candidates, and export CSV/JSON.</p>
+      </div>
+      <a class="button ghost" href="/api/exports/tracks.csv">Export library CSV</a>
+    </header>
+
+    <main>
+      <section class="panel upload-panel">
+        <h2>Upload tracks</h2>
+        <p>Drop MP3/WAV/FLAC/M4A files. Analysis starts automatically and keeps raw + corrected grids separately.</p>
+        <input id="fileInput" type="file" multiple accept="audio/*" />
+        <button id="uploadButton">Upload and analyze</button>
+        <div id="uploadStatus" class="status"></div>
+      </section>
+
+      <section class="layout">
+        <aside class="panel">
+          <div class="section-title">
+            <h2>Review queue</h2>
+            <button id="refreshButton" class="small">Refresh</button>
+          </div>
+          <div id="trackList" class="track-list"></div>
+        </aside>
+
+        <section class="panel detail">
+          <div id="emptyState" class="empty">Select a track to inspect its beatgrid.</div>
+          <div id="trackDetail" hidden>
+            <div class="section-title wrap">
+              <div>
+                <p class="eyebrow">Now reviewing</p>
+                <h2 id="detailTitle"></h2>
+              </div>
+              <div class="actions">
+                <a id="jsonExport" class="button ghost" href="#">JSON</a>
+                <a id="beatExport" class="button ghost" href="#">Beat CSV</a>
+                <button id="tagButton" class="small">Write BPM tag</button>
+              </div>
+            </div>
+
+            <audio id="audio" controls preload="metadata"></audio>
+            <canvas id="waveform" width="1100" height="220"></canvas>
+            <div class="legend">
+              <span><b class="beat"></b> beat</span>
+              <span><b class="one"></b> salsa 1</span>
+              <span><b class="five"></b> salsa 5</span>
+            </div>
+
+            <div id="metrics" class="metrics"></div>
+            <div id="warnings" class="warnings"></div>
+
+            <div class="corrections">
+              <h3>Manual correction tools</h3>
+              <div class="button-grid">
+                <button data-action="set_one">Set current playhead as 1</button>
+                <button data-action="set_five">Set current playhead as 5</button>
+                <button data-action="swap_one_five">Swap 1 / 5</button>
+                <button data-action="shift_minus_beat">Shift -1 beat</button>
+                <button data-action="shift_plus_beat">Shift +1 beat</button>
+                <button data-action="shift_minus_phrase">Phrase -4 beats</button>
+                <button data-action="shift_plus_phrase">Phrase +4 beats</button>
+                <button data-action="half_bpm">Half BPM</button>
+                <button data-action="double_bpm">Double BPM</button>
+                <button data-action="mark_reviewed">Mark reviewed</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
