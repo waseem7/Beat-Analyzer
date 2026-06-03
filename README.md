@@ -1,5 +1,7 @@
 # Latin Beat Analyzer
 
+**Current release:** `0.1.0-alpha.1` — first alpha mainline.
+
 A self-hosted Docker web app for human-assisted Latin beatgrid analysis. It is designed for salsa/timba DJ preparation where automatic tools can estimate BPM, beats, downbeats, and candidate salsa **1/5** locations, but a fast manual review UI is still required for musical correctness.
 
 ## What is included
@@ -21,6 +23,20 @@ A self-hosted Docker web app for human-assisted Latin beatgrid analysis. It is d
 - CSV and JSON export.
 - Optional MP3 BPM/comment tag writing through `mutagen`.
 - Persistent local storage under `./data` for music, analysis JSON, and exports.
+
+
+## Alpha mainline and automated publishing
+
+This repo is organized around one long-lived branch: `main`. The first alpha release is tracked in [`VERSION`](VERSION), and the alpha policy is documented in [`docs/ALPHA_RELEASE.md`](docs/ALPHA_RELEASE.md).
+
+On every push to `main`, GitHub Actions runs tests, builds the Docker image, and publishes the alpha image to GitHub Container Registry as:
+
+```text
+ghcr.io/<owner>/<repo>:alpha
+ghcr.io/<owner>/<repo>:<commit-sha>
+```
+
+Pull requests to `main` run the same test and Docker build checks without publishing.
 
 ## Run with Docker
 
