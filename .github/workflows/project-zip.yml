@@ -1,0 +1,35 @@
+name: Project ZIP Artifact
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package source ZIP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create project ZIP
+        run: |
+          SHORT_SHA="$(git rev-parse --short HEAD)"
+          ZIP_NAME="Beat-Analyzer-latest-${SHORT_SHA}.zip"
+          git archive --format=zip --prefix=Beat-Analyzer/ --output="${ZIP_NAME}" HEAD
+          echo "ZIP_NAME=${ZIP_NAME}" >> "$GITHUB_ENV"
+
+      - name: Upload project ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ZIP_NAME }}
+          path: ${{ env.ZIP_NAME }}
+          if-no-files-found: error
