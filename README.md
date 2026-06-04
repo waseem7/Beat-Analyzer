@@ -7,11 +7,11 @@ A self-hosted Docker web app for human-assisted Latin beatgrid analysis. It is d
 ## What is included
 
 - Batch audio upload for MP3, WAV, FLAC, M4A, AAC, and OGG.
-- Background analysis using `librosa` in the Docker image, with a low-confidence fallback grid if automatic analysis fails.
+- Background analysis using `librosa` in the Docker image, with a tempo-locked onset fallback before falling back to a low-confidence placeholder grid.
 - BPM and half-time display BPM estimation.
 - Beat timestamps, downbeat candidates, salsa 1 markers, and salsa 5 markers.
 - Composite confidence scores for BPM, grid, downbeat, salsa 1, and overall analysis.
-- Waveform review UI with beatgrid overlays.
+- Waveform review UI with beatgrid overlays, click-to-seek playhead, beat jumps, phrase loop auditioning, and a live DJ-style runtime EQ visualizer.
 - Manual correction buttons:
   - Set current playhead as 1
   - Set current playhead as 5
