@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 from functools import lru_cache
 from pathlib import Path
@@ -21,7 +22,17 @@ VERSION_FILE = Path(__file__).resolve().parents[2] / "VERSION"
 
 @lru_cache(maxsize=1)
 def app_version() -> str:
-    return VERSION_FILE.read_text(encoding="utf-8").strip()
+    return os.getenv("BEAT_ANALYZER_VERSION") or VERSION_FILE.read_text(encoding="utf-8").strip()
+
+
+def build_info() -> dict[str, str]:
+    return {
+        "status": "ok",
+        "version": app_version(),
+        "git_sha": os.getenv("BEAT_ANALYZER_GIT_SHA", "unknown"),
+        "build_tag": os.getenv("BEAT_ANALYZER_BUILD_TAG", "local"),
+        "build_date": os.getenv("BEAT_ANALYZER_BUILD_DATE", "unknown"),
+    }
 
 
 app = FastAPI(title="Latin Beat Analyzer", version=app_version())
@@ -57,7 +68,7 @@ def _run_analysis(track_id: str) -> None:
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "version": app_version(), "release": "first-alpha"}
+    return build_info()
 
 
 @app.post("/api/tracks", response_model=TrackSummary)

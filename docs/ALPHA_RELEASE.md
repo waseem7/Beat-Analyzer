@@ -19,10 +19,10 @@ Every push to `main` runs the alpha pipeline:
 1. Install Python dependencies.
 2. Run the backend test suite.
 3. Build the Docker image.
-4. Publish `ghcr.io/<owner>/<repo>:alpha` and `ghcr.io/<owner>/<repo>:<commit-sha>` when the tests pass.
+4. Publish `ghcr.io/waseem7/beat-analyzer:alpha`, `:<VERSION>`, `:sha-<shortsha>`, and `:build-<github-run-number>` when the tests pass.
 
 Pull requests targeting `main` run the same tests and Docker build without publishing an image.
 
 ## Deployment expectation
 
-Users should not need to manually commit, pull, or build for normal alpha publishing. The deployable Docker image is produced automatically from `main` after CI succeeds.
+Users should not need to manually commit, pull, or build for normal alpha publishing. The deployable Docker image is produced automatically from `main` after CI succeeds. Synology deployments should use immutable version tags such as `ghcr.io/waseem7/beat-analyzer:0.1.0-alpha.2` instead of relying only on the moving `alpha` tag.

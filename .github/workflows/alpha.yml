@@ -40,6 +40,30 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Prepare image metadata
+        id: meta
+        run: |
+          VERSION="$(cat VERSION)"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          CREATED="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          IMAGE="ghcr.io/waseem7/beat-analyzer"
+          {
+            echo "version=${VERSION}"
+            echo "short_sha=${SHORT_SHA}"
+            echo "created=${CREATED}"
+            echo "image=${IMAGE}"
+            echo "sha_tag=sha-${SHORT_SHA}"
+            echo "build_tag=build-${GITHUB_RUN_NUMBER}"
+          } >> "$GITHUB_OUTPUT"
+          cat >> "$GITHUB_STEP_SUMMARY" <<SUMMARY
+          ## Beat Analyzer image tags
+          - Moving alpha: \`${IMAGE}:alpha\`
+          - Version: \`${IMAGE}:${VERSION}\`
+          - Short SHA: \`${IMAGE}:sha-${SHORT_SHA}\`
+          - Build number: \`${IMAGE}:build-${GITHUB_RUN_NUMBER}\`
+          - Workflow URL: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          SUMMARY
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -54,7 +78,27 @@ jobs:
         run: |
           docker buildx build \
             --file Dockerfile \
-            --tag ghcr.io/waseem7/beat-analyzer:alpha \
-            --tag ghcr.io/waseem7/beat-analyzer:${{ github.sha }} \
+            --build-arg VERSION="${{ steps.meta.outputs.version }}" \
+            --build-arg GIT_SHA="${{ github.sha }}" \
+            --build-arg BUILD_TAG="${{ steps.meta.outputs.build_tag }}" \
+            --build-arg BUILD_DATE="${{ steps.meta.outputs.created }}" \
+            --label org.opencontainers.image.source="https://github.com/waseem7/Beat-Analyzer" \
+            --label org.opencontainers.image.revision="${{ github.sha }}" \
+            --label org.opencontainers.image.version="${{ steps.meta.outputs.version }}" \
+            --label org.opencontainers.image.created="${{ steps.meta.outputs.created }}" \
+            --label org.opencontainers.image.title="Beat Analyzer" \
+            --tag "${{ steps.meta.outputs.image }}:alpha" \
+            --tag "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}" \
+            --tag "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}" \
+            --tag "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.build_tag }}" \
             --push \
             .
+
+      - name: Verify version image can be pulled
+        run: docker pull "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}"
+
+      - name: Make GHCR package public if permitted
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api --method PATCH /user/packages/container/beat-analyzer/visibility -f visibility=public

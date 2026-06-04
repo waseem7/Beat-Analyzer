@@ -11,7 +11,13 @@ client = TestClient(app)
 def test_health():
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": "0.1.0-alpha.1", "release": "first-alpha"}
+    assert response.json() == {
+        "status": "ok",
+        "version": "0.1.0-alpha.2",
+        "git_sha": "unknown",
+        "build_tag": "local",
+        "build_date": "unknown",
+    }
 
 
 def test_export_tracks_csv_has_expected_header():

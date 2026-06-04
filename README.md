@@ -1,17 +1,17 @@
 # Latin Beat Analyzer
 
-**Current release:** `0.1.0-alpha.1` — first alpha mainline.
+**Current release:** `0.1.0-alpha.2` — alpha with immutable Docker tags, build metadata, stronger analysis fallback, and live DJ review tools.
 
-A self-hosted Docker web app for human-assisted Latin beatgrid analysis. It is designed for salsa/timba DJ preparation where automatic tools can estimate BPM, beats, downbeats, and candidate salsa **1/5** locations, but a fast manual review UI is still required for musical correctness.
+A self-hosted Docker web app for human-assisted Latin beatgrid analysis. It is designed for salsa/timba DJ preparation where automatic tools estimate BPM, beats, downbeats, and candidate salsa **1/5** locations, but a fast manual review UI is still required for musical correctness.
 
 ## What is included
 
 - Batch audio upload for MP3, WAV, FLAC, M4A, AAC, and OGG.
-- Background analysis using `librosa` in the Docker image, with a low-confidence fallback grid if automatic analysis fails.
+- Background analysis using `librosa` in the Docker image, with multiple beat-tracker seed attempts, PLP/onset fallback, and no fake 180 BPM placeholder when a trustworthy BPM cannot be estimated.
 - BPM and half-time display BPM estimation.
 - Beat timestamps, downbeat candidates, salsa 1 markers, and salsa 5 markers.
 - Composite confidence scores for BPM, grid, downbeat, salsa 1, and overall analysis.
-- Waveform review UI with beatgrid overlays.
+- Waveform review UI with beatgrid overlays, click-to-seek playhead, beat jumps, phrase loop auditioning, visible app version/build metadata, and a live Web Audio EQ with low/mid/high controls plus live meters.
 - Manual correction buttons:
   - Set current playhead as 1
   - Set current playhead as 5
@@ -24,21 +24,63 @@ A self-hosted Docker web app for human-assisted Latin beatgrid analysis. It is d
 - Optional MP3 BPM/comment tag writing through `mutagen`.
 - Persistent local storage under `./data` for music, analysis JSON, and exports.
 
-
 ## Alpha mainline and automated publishing
 
-This repo is organized around one long-lived branch: `main`. The first alpha release is tracked in [`VERSION`](VERSION), and the alpha policy is documented in [`docs/ALPHA_RELEASE.md`](docs/ALPHA_RELEASE.md).
+This repo is organized around one long-lived branch: `main`. The alpha release is tracked in [`VERSION`](VERSION), and the alpha policy is documented in [`docs/ALPHA_RELEASE.md`](docs/ALPHA_RELEASE.md).
 
-On every push to `main`, GitHub Actions runs tests, builds the Docker image, and publishes the alpha image to GitHub Container Registry as:
+On every successful push to `main`, GitHub Actions runs tests, builds the Docker image, and publishes these GitHub Container Registry tags:
 
 ```text
-ghcr.io/<owner>/<repo>:alpha
-ghcr.io/<owner>/<repo>:<commit-sha>
+ghcr.io/waseem7/beat-analyzer:alpha
+ghcr.io/waseem7/beat-analyzer:<VERSION>
+ghcr.io/waseem7/beat-analyzer:sha-<shortsha>
+ghcr.io/waseem7/beat-analyzer:build-<github-run-number>
 ```
 
-Pull requests to `main` run the same test and Docker build checks without publishing.
+For example, this release publishes tags in this shape:
 
-## Run with Docker
+```text
+ghcr.io/waseem7/beat-analyzer:alpha
+ghcr.io/waseem7/beat-analyzer:0.1.0-alpha.2
+ghcr.io/waseem7/beat-analyzer:sha-7c6251f
+ghcr.io/waseem7/beat-analyzer:build-23
+```
+
+The `alpha` tag is a moving convenience tag. Use immutable tags for deployments that cache images aggressively.
+
+Pull requests to `main` run tests and Docker build checks without publishing an image.
+
+## Synology Container Manager deployment
+
+Synology Container Manager can silently reuse a locally cached image when a compose file references only a mutable tag such as `alpha`. For Synology, prefer a specific immutable version tag and update the tag when you want to deploy a new release:
+
+```yaml
+services:
+  beat-analyzer:
+    image: ghcr.io/waseem7/beat-analyzer:0.1.0-alpha.2
+    container_name: latin-beat-analyzer
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+```
+
+If you choose `ghcr.io/waseem7/beat-analyzer:alpha`, remember that it is a moving tag. Synology may require a manual pull, clearing the cached local image, or changing to a fresh immutable tag before it starts the new container image.
+
+After each publish, record these values from the GitHub Actions run summary before updating Synology:
+
+- `VERSION`
+- full commit SHA
+- `sha-<shortsha>` image tag
+- `build-<github-run-number>` image tag
+- recommended Synology image tag, usually `ghcr.io/waseem7/beat-analyzer:<VERSION>`
+- workflow URL
+- whether the workflow's `docker pull ghcr.io/waseem7/beat-analyzer:<VERSION>` verification succeeded
+
+If GHCR access fails from Synology, verify the package visibility in GitHub Packages and make `ghcr.io/waseem7/beat-analyzer` public if needed.
+
+## Run with Docker for local development
 
 ```bash
 docker compose up --build
@@ -74,7 +116,7 @@ pytest
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/health` | Health check |
+| `GET` | `/api/health` | Health and build metadata (`status`, `version`, `git_sha`, `build_tag`, `build_date`) |
 | `POST` | `/api/tracks` | Upload and analyze one audio file |
 | `GET` | `/api/tracks` | List review queue |
 | `GET` | `/api/tracks/{id}` | Get full track analysis/corrections |
