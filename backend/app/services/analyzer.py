@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
+from typing import Any
 
 from ..models import AnalysisResult, BeatMarker, Confidence
 
@@ -46,22 +47,41 @@ def _fixed_grid_from_bpm(duration: float, bpm: float, start: float = 0.0) -> lis
     return _round_times([start + i * interval for i in range(count)])
 
 
+def _first_onset_time(librosa: Any, onset_env: Any, sr: int) -> float:
+    onset_frames = librosa.onset.onset_detect(onset_envelope=onset_env, sr=sr, backtrack=True)
+    onset_times = librosa.frames_to_time(onset_frames, sr=sr).astype(float).tolist()
+    return round(float(onset_times[0]), 3) if onset_times else 0.0
+
+
 def _estimate_with_librosa(audio_path: Path) -> AnalysisResult:
     import librosa  # intentionally optional in local dev; installed in Docker image
     import numpy as np
 
+    warnings: list[str] = []
+    analyzer = "librosa"
     y, sr = librosa.load(str(audio_path), sr=22050, mono=True)
     duration = float(librosa.get_duration(y=y, sr=sr))
-    tempo_raw, beat_frames = librosa.beat.beat_track(y=y, sr=sr, units="frames", trim=False)
-    tempo = float(np.asarray(tempo_raw).reshape(-1)[0])
-    if tempo and tempo < 120:
-        working_bpm = tempo * 2.0
-    else:
-        working_bpm = tempo
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
 
-    beat_times = librosa.frames_to_time(beat_frames, sr=sr).astype(float).tolist()
+    try:
+        tempo_raw, beat_frames = librosa.beat.beat_track(y=y, sr=sr, units="frames", trim=False)
+        tempo = float(np.asarray(tempo_raw).reshape(-1)[0])
+        beat_times = librosa.frames_to_time(beat_frames, sr=sr).astype(float).tolist()
+    except RuntimeError as exc:
+        tempo_values = librosa.feature.tempo(onset_envelope=onset_env, sr=sr, aggregate=None)
+        tempo = float(np.median(tempo_values)) if len(tempo_values) else 0.0
+        beat_times = []
+        analyzer = "librosa-onset-fallback"
+        warnings.append(f"beat tracker runtime fallback used: {exc}")
+
+    working_bpm = tempo * 2.0 if tempo and tempo < 120 else tempo
+
     if len(beat_times) < 8 and working_bpm:
-        beat_times = _fixed_grid_from_bpm(duration, working_bpm, beat_times[0] if beat_times else 0.0)
+        start = beat_times[0] if beat_times else _first_onset_time(librosa, onset_env, sr)
+        beat_times = _fixed_grid_from_bpm(duration, working_bpm, start)
+        if analyzer == "librosa":
+            analyzer = "librosa-fixed-grid"
+        warnings.append("beat tracker produced too few beats; built a tempo-locked review grid")
     beat_times = _round_times(beat_times)
 
     intervals = np.diff(beat_times) if len(beat_times) > 1 else np.array([])
@@ -69,10 +89,12 @@ def _estimate_with_librosa(audio_path: Path) -> AnalysisResult:
     interval_jitter = float(np.std(intervals) / median_interval) if median_interval and intervals.size else 1.0
     grid_conf = _clamp(1.0 - interval_jitter * 2.5)
 
-    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
     tempo_candidates = librosa.feature.tempo(onset_envelope=onset_env, sr=sr, aggregate=None)
     tempo_std = float(np.std(tempo_candidates)) if len(tempo_candidates) else 999.0
     bpm_conf = _clamp(1.0 - min(tempo_std, 40.0) / 40.0)
+    if analyzer.endswith("fallback"):
+        grid_conf = min(grid_conf, 0.55)
+        bpm_conf = min(bpm_conf, 0.65)
 
     first_one = beat_times[0] if beat_times else None
     downbeats = beat_times[0::4]
@@ -81,7 +103,6 @@ def _estimate_with_librosa(audio_path: Path) -> AnalysisResult:
     salsa_conf = _clamp(downbeat_conf * 0.72)
     overall = _clamp((bpm_conf + grid_conf + downbeat_conf + salsa_conf) / 4.0)
 
-    warnings: list[str] = []
     if salsa_conf < 0.7:
         warnings.append("possible 1/5 ambiguity; manual review recommended")
     if tempo and tempo < 120:
@@ -107,7 +128,7 @@ def _estimate_with_librosa(audio_path: Path) -> AnalysisResult:
         confidence=confidence,
         warnings=warnings,
         beats=_build_markers(beat_times, first_one, grid_conf),
-        analyzer="librosa",
+        analyzer=analyzer,
     )
 
 
