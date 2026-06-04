@@ -38,6 +38,10 @@ ghcr.io/<owner>/<repo>:<commit-sha>
 
 Pull requests to `main` run the same test and Docker build checks without publishing.
 
+## Download a fresh project ZIP
+
+This repository does not store generated ZIP files directly. To create a downloadable source bundle from GitHub, run the **Project ZIP Artifact** workflow in GitHub Actions. See [`docs/PROJECT_ZIP.md`](docs/PROJECT_ZIP.md) for step-by-step instructions.
+
 ## Run with Docker
 
 ```bash
