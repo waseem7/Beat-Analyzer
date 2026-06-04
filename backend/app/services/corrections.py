@@ -19,6 +19,38 @@ def _recount_from_index(analysis: AnalysisResult, first_index: int) -> AnalysisR
         marker.is_downbeat = count8 in (1, 5)
         marker.is_salsa_1 = count8 == 1
         marker.is_salsa_5 = count8 == 5
+
+    analysis.downbeat_times = [m.time for m in analysis.beats if m.is_downbeat]
+
+    anchor_index = max(first_index, 0)
+
+    one_marker = next(
+        (m for idx, m in enumerate(analysis.beats) if idx >= anchor_index and m.is_salsa_1),
+        None,
+    )
+    if one_marker is None:
+        one_marker = next((m for m in analysis.beats if m.is_salsa_1), None)
+
+    five_marker = None
+    if one_marker is not None:
+        five_marker = next(
+            (m for m in analysis.beats if m.is_salsa_5 and m.time >= one_marker.time),
+            None,
+        )
+
+    if five_marker is None:
+        five_marker = next((m for m in analysis.beats if m.is_salsa_5), None)
+
+    analysis.candidate_salsa_1 = one_marker.time if one_marker else None
+    analysis.candidate_salsa_5 = five_marker.time if five_marker else None
+
+    return analysis
+    for idx, marker in enumerate(analysis.beats):
+        count8 = ((idx - first_index) % 8) + 1
+        marker.count8 = count8
+        marker.is_downbeat = count8 in (1, 5)
+        marker.is_salsa_1 = count8 == 1
+        marker.is_salsa_5 = count8 == 5
     analysis.downbeat_times = [m.time for m in analysis.beats if m.is_downbeat]
     one = next((m.time for m in analysis.beats if m.is_salsa_1), None)
     five = next((m.time for m in analysis.beats if m.is_salsa_5), None)
